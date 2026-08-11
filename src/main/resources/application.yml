@@ -1,0 +1,8 @@
+cassandra:
+  default:
+    basic:
+      contact-points:
+        - "localhost:9042"
+      session-keyspace: voting_system
+      load-balancing-policy:
+        local-datacenter: datacenter1

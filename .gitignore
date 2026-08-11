@@ -19,13 +19,3 @@ out/
 .gradle/
 # Logs
 *.log
-src/
-gradle/
-gradlew
-gradlew.bat
-build.gradle
-settings.gradle
-docker-compose.yaml
-schema.cql
-*.proto
-application.yml

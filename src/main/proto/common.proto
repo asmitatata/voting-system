@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "com.hamropatro";
+option java_outer_classname = "CommonProto";
+option objc_class_prefix = "CP";
+
+package com.hamropatro;
+
+message Empty{}
+
+message Candidates{
+  string candidate_id = 1;
+  string candidate_name = 2;
+  string election_id = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
+message Elections{
+  string election_id = 1;
+  string election_name = 2;
+  repeated Candidates candidate=3;
+  string voting_type = 4;
+  int32 max_votes = 5;
+  int64 start_at = 6;
+  int64 end_at = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+  string status = 10;
+}
+
+message Votes{
+  string vote_id = 1;
+  string election_id = 2;
+  string user_id = 3;
+  string candidate_id = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+message Response{
+  string message=1;
+}
+
