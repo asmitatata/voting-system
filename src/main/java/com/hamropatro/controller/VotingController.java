@@ -23,10 +23,11 @@ public class VotingController extends VotingSystemServiceGrpc.VotingSystemServic
     @Override
     public void castVote(CastVoteRequest request, StreamObserver<Response> responseStreamObserver) {
         var dto = new VotesDto(
+                UUID.fromString(request.getUserId()),
                 UUID.fromString(request.getElectionId()),
                 null,
                 UUID.fromString(request.getCandidateId()),
-                UUID.fromString(request.getUserId()),
+                request.getVoteCount(),
                 now,
                 0l
         );
@@ -43,10 +44,11 @@ public class VotingController extends VotingSystemServiceGrpc.VotingSystemServic
     public void updateVote(UpdateVoteRequest request, StreamObserver<Response> responseStreamObserver) {
         var voteId=UUID.fromString(request.getVoteId());
         var dto = new VotesDto(
+                UUID.fromString(request.getUserId()),
                 UUID.fromString(request.getElectionId()),
                 UUID.fromString(request.getVoteId()),
                 UUID.fromString(request.getCandidateId()),
-                UUID.fromString(request.getUserId()),
+                request.getVoteCount(),
                 0l,
                 0l
         );
@@ -76,14 +78,16 @@ public class VotingController extends VotingSystemServiceGrpc.VotingSystemServic
     }
 
     @Override
-    public void getVotesByElectionId(VotesByElectionIdRequest request, StreamObserver<getAllVotes> responseStreamObserver) {
-        List<VotesDto> dto = votesDetail.findVotesByElection(UUID.fromString(request.getElectionId()));
+    public void getVotesByElectionId(VotesByElectionIdRequest request, StreamObserver<getVotesByElectionIdResponse> responseStreamObserver) {
+        var electionId=UUID.fromString(request.getElectionId());
+//        var userId=UUID.fromString(request.getUserId());
+        List<VotesDto> dto = votesDetail.findVotesByElection(electionId);
 
-        List<Votes> votes = dto.stream()
-                .map(VotesMapper::fromVotesDtotoVotes)
+        List<VotesByElectionId> votes = dto.stream()
+                .map(VotesMapper::fromVotesDtotoVotesByElectionId)
                 .toList();
 
-        getAllVotes response = getAllVotes.newBuilder().addAllVotes(votes).build();
+        getVotesByElectionIdResponse response = getVotesByElectionIdResponse.newBuilder().addAllVotes(votes).build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }

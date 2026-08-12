@@ -32,41 +32,31 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TABLE IF NOT EXISTS candidate
 (
-    election_id UUID,
+    election_id  UUID,
     candidate_id UUID,
-    full_name TEXT,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
+    full_name    TEXT,
+    created_at   TIMESTAMP,
+    updated_at   TIMESTAMP,
     PRIMARY KEY (election_id, candidate_id)
 );
 
 CREATE TABLE IF NOT EXISTS votes
 (
+    user_id      UUID,
     election_id  UUID,
     vote_id      UUID,
-    user_id      UUID,
     candidate_id UUID,
+    vote_count   INT,
     created_at   TIMESTAMP,
-    updated_at TIMESTAMP,
-    PRIMARY KEY (election_id, vote_id)
+    updated_at   TIMESTAMP,
+    PRIMARY KEY ((user_id, election_id), vote_id)
 );
 
-CREATE TABLE votes_by_candidate
+CREATE TABLE IF NOT EXISTS votes_by_candidate
 (
+    election_id  UUID,
     candidate_id UUID,
-    vote_id UUID,
-    election_id UUID,
-    user_id UUID,
-    created_at TIMESTAMP,
-    PRIMARY KEY (candidate_id, vote_id)
+    vote_count   COUNTER,
+    PRIMARY KEY ((election_id), candidate_id)
 );
 
-CREATE TABLE votes_by_user
-(
-    election_id UUID,
-    user_id UUID,
-    vote_id UUID,
-    candidate_id UUID,
-    created_at TIMESTAMP,
-    PRIMARY KEY ((election_id, user_id), vote_id)
-);

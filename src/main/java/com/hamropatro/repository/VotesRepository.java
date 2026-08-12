@@ -3,7 +3,6 @@ package com.hamropatro.repository;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.hamropatro.entity.CandidateEntity;
 import com.hamropatro.entity.VotesEntity;
 import jakarta.inject.Singleton;
 
@@ -22,43 +21,109 @@ public class VotesRepository {
 
     public void castVote(VotesEntity vote) {
         String query =
-                "INSERT INTO voting_system.votes(election_id,vote_id,user_id,candidate_id,created_at,updated_at) VALUES (?,?,?,?,?,?)";
+                "INSERT INTO voting_system.votes(user_id, election_id, vote_id, candidate_id,vote_count, created_at, updated_at) VALUES (?,?,?,?,?,?,?)";
 
         session.execute(
                 SimpleStatement.newInstance(
                         query,
+                        vote.getUserId(),
                         vote.getElectionId(),
                         vote.getVoteId(),
-                        vote.getUserId(),
                         vote.getCandidateId(),
+                        vote.getVoteCount(),
                         Instant.ofEpochMilli(vote.getCreatedAt()),
                         Instant.ofEpochMilli(vote.getUpdatedAt())
+                )
+        );
+        String counterQuery =
+                "UPDATE voting_system.votes_by_candidate SET vote_count = vote_count + ? WHERE election_id = ? AND candidate_id = ?";
+
+        session.execute(
+                SimpleStatement.newInstance(
+                        counterQuery,
+                        (long)vote.getVoteCount(),
+                        vote.getElectionId(),
+                        vote.getCandidateId()
                 )
         );
     }
 
     public void updateVote(UUID voteId, VotesEntity vote) {
-        String query =
-                "UPDATE voting_system.votes SET user_id=?, candidate_id=?, updated_at=? WHERE election_id = ? AND vote_id = ?;";
+        String findQuery =
+                "SELECT candidate_id, vote_count FROM voting_system.votes WHERE user_id = ? AND election_id = ? AND vote_id = ?";
+
+        Row existingVote = session.execute(
+                SimpleStatement.newInstance(
+                        findQuery,
+                        vote.getUserId(),
+                        vote.getElectionId(),
+                        voteId
+                )
+        ).one();
+
+        if (existingVote == null) {
+            throw new IllegalArgumentException(
+                    "Vote not found: " + voteId
+            );
+        }
+
+        UUID oldCandidateId =
+                existingVote.getUuid("candidate_id");
+
+        int oldVoteCount =
+                existingVote.getInt("vote_count");
+
+        String updateQuery =
+                "UPDATE voting_system.votes SET candidate_id = ?,vote_count =?, updated_at = ? WHERE user_id = ? AND election_id = ? AND vote_id = ?";
+        session.execute(
+                SimpleStatement.newInstance(
+                        updateQuery,
+                        vote.getCandidateId(),
+                        vote.getVoteCount(),
+                        Instant.ofEpochMilli(vote.getUpdatedAt()),
+                        vote.getUserId(),
+                        vote.getElectionId(),
+                        voteId
+                )
+        );
+        /*
+         * Remove the old vote count from the old candidate.
+         */
+        String decrementQuery =
+                "UPDATE voting_system.votes_by_candidate SET vote_count = vote_count - ? WHERE election_id = ? AND candidate_id = ?";
 
         session.execute(
                 SimpleStatement.newInstance(
-                        query,
-                        vote.getUserId(),
-                        vote.getCandidateId(),
-                        Instant.ofEpochMilli(vote.getUpdatedAt()),
+                        decrementQuery,
+                        oldVoteCount,
                         vote.getElectionId(),
-                        voteId
+                        oldCandidateId
+                )
+        );
+
+
+        /*
+         * Add the new vote count to the new candidate.
+         */
+        String incrementQuery =
+                "UPDATE voting_system.votes_by_candidate SET vote_count = vote_count + ? WHERE election_id = ? AND candidate_id = ?";
+
+        session.execute(
+                SimpleStatement.newInstance(
+                        incrementQuery,
+                        vote.getUserId(),
+                        vote.getVoteCount(),
+                        vote.getElectionId(),
+                        vote.getCandidateId()
                 )
         );
     }
 
     public boolean hasVoted(UUID electionId, UUID userId) {
         String query =
-                "SELECT vote_id FROM voting_system.votes_by_user WHERE election_id=? AND user_id=?";
-
+                "SELECT vote_id FROM voting_system.votes WHERE user_id = ? AND election_id = ? LIMIT 1";
         Row row = session.execute(
-                SimpleStatement.newInstance(query, electionId,userId)
+                SimpleStatement.newInstance(query, userId, electionId)
         ).one();
 
         return row != null;
@@ -66,25 +131,20 @@ public class VotesRepository {
 
     public List<VotesEntity> findVotesByElection(UUID electionId) {
         String query =
-                "SELECT * FROM voting_system.votes WHERE election_id=? ";
+                "SELECT * FROM voting_system.votes_by_candidate WHERE election_id=?";
 
         List<Row> rows = session.execute(
-                SimpleStatement.newInstance(query,electionId)
+                SimpleStatement.newInstance(query, electionId)
         ).all();
 
         List<VotesEntity> votes = new ArrayList<>();
 
         for (Row row : rows) {
-            long createdAt = row.getInstant("created_at").toEpochMilli();
-            long updatedAt = row.getInstant("updated_at").toEpochMilli();
             votes.add(
                     VotesEntity.builder()
                             .electionId(row.getUuid("election_id"))
-                            .voteId(row.getUuid("vote_id"))
-                            .userId(row.getUuid("user_id"))
                             .candidateId(row.getUuid("candidate_id"))
-                            .createdAt(createdAt)
-                            .updatedAt(updatedAt)
+                            .voteCount((int) row.getLong("vote_count"))
                             .build()
             );
         }
@@ -92,20 +152,26 @@ public class VotesRepository {
     }
 
     public long countByElectionId(UUID electionId) {
-        var statement = SimpleStatement.builder(
-                        "SELECT COUNT(*) FROM voting_system.votes WHERE election_id = ?"
-                )
-                .addPositionalValue(electionId)
-                .build();
 
-        var row = session.execute(statement).one();
+        String query =
+                "SELECT vote_count FROM voting_system.votes_by_candidate WHERE election_id = ?";
 
-        return row != null ? row.getLong(0) : 0L;
+        List<Row> rows = session.execute(
+                SimpleStatement.newInstance(query, electionId)
+        ).all();
+
+        long total = 0;
+
+        for (Row row : rows) {
+            total += row.getLong("vote_count");
+        }
+
+        return total;
     }
 
     public long countByCandidateId(UUID candidateId) {
         var statement = SimpleStatement.builder(
-                        "SELECT COUNT(*) FROM voting_system.votes_by_candidate WHERE candidate_id = ?"
+                        "SELECT vote_count FROM voting_system.votes_by_candidate WHERE candidate_id = ?;"
                 )
                 .addPositionalValue(candidateId)
                 .build();

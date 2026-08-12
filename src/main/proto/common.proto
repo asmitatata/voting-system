@@ -30,7 +30,11 @@ message Elections{
   int64 updated_at = 9;
   string status = 10;
 }
-
+message VotesByElectionId{
+  string election_id = 1;
+  string candidate_id = 2;
+  int32 vote_count = 3;
+}
 message Votes{
   string vote_id = 1;
   string election_id = 2;
@@ -38,6 +42,7 @@ message Votes{
   string candidate_id = 4;
   int64 created_at = 5;
   int64 updated_at = 6;
+  int32 vote_count=7;
 }
 
 message Response{
