@@ -19,12 +19,14 @@ CREATE TABLE IF NOT EXISTS election
     status        TEXT
 );
 
+
 CREATE TABLE IF NOT EXISTS users
 (
     user_id    UUID PRIMARY KEY,
     full_name  TEXT,
     email      TEXT,
     role       TEXT,
+    password   TEXT,
     is_active  BOOLEAN,
     created_at TIMESTAMP,
     updated_at TIMESTAMP
@@ -60,3 +62,4 @@ CREATE TABLE IF NOT EXISTS votes_by_candidate
     PRIMARY KEY ((election_id), candidate_id)
 );
 
+CREATE INDEX users_by_email on users(email);
