@@ -1,9 +1,12 @@
 package com.hamropatro.controller;
 
 import com.hamropatro.*;
+import com.hamropatro.dto.CandidateDto;
 import com.hamropatro.dto.ElectionDto;
 import com.hamropatro.enums.ElectionStatus;
+import com.hamropatro.mapper.CandidateMapper;
 import com.hamropatro.mapper.ElectionMapper;
+import com.hamropatro.service.CandidateDetail;
 import com.hamropatro.service.ElectionDetail;
 import io.grpc.stub.StreamObserver;
 import io.micronaut.grpc.annotation.GrpcService;
@@ -15,15 +18,23 @@ import java.util.UUID;
 @GrpcService
 public class ElectionController extends ElectionServiceGrpc.ElectionServiceImplBase {
     private final ElectionDetail electionDetail;
+    private final CandidateDetail candidateDetail;
 
-    public ElectionController(ElectionDetail electionDetail) {
+    public ElectionController(ElectionDetail electionDetail, CandidateDetail candidateDetail) {
         this.electionDetail = electionDetail;
+        this.candidateDetail = candidateDetail;
     }
 
     long now = Instant.now().toEpochMilli();
 
     @Override
     public void createElection(CreateElectionRequest request, StreamObserver<Response> responseStreamObserver) {
+
+        if (request.getStartAt() >= request.getEndAt()) {
+            throw new IllegalArgumentException(
+                    "Start time must be before end time"
+            );
+        }
         var dto = new ElectionDto(
                 null,
                 request.getElectionName(),
@@ -67,10 +78,30 @@ public class ElectionController extends ElectionServiceGrpc.ElectionServiceImplB
     public void listElection(Empty request, StreamObserver<getAllElectionResponse> responseStreamObserver) {
         List<ElectionDto> dto = electionDetail.findAll();
 
-        List<Elections> elections = dto.stream()
-                .map(ElectionMapper::fromElectionDtotoElections)
-                .toList();
+//        List<Elections> elections = dto.stream()
+//                .map(ElectionMapper::fromElectionDtotoElections)
+//                .toList();
 
+        List<Elections> elections = dto.stream()
+                .map(election -> {
+
+                    Elections.Builder electionBuilder =
+                            ElectionMapper
+                                    .fromElectionDtotoElections(election)
+                                    .toBuilder();
+
+                    List<CandidateDto> candidates =
+                            candidateDetail.findByElectionId(election.election_id());
+
+                    List<Candidates> candidateProtos = candidates.stream()
+                            .map(CandidateMapper::fromCandidateDtotoCandidates)
+                            .toList();
+
+                    electionBuilder.addAllCandidate(candidateProtos);
+
+                    return electionBuilder.build();
+                })
+                .toList();
         getAllElectionResponse response = getAllElectionResponse.newBuilder().addAllElections(elections).build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "com.hamropatro";
+option java_outer_classname = "VoterServiceProto";
+option objc_class_prefix = "VP";
+import "common.proto";
+
+package com.hamropatro;
+
+service VoterService {
+  rpc getVoter (VoterIdRequest) returns (getVoterResponse) {}
+  rpc listVoter (Empty) returns (getAllVoter) {}
+  rpc candidateExists (VoterIdRequest) returns (VoterExistResponse) {}
+}
+
+message VoterIdRequest {
+  string voter_id = 1;
+}
+
+message getVoterResponse {
+  string voter_id = 1;
+  string voter_name = 2;
+  string voter_email = 3;
+}
+
+message getAllVoter {
+  repeated Voters voter = 1;
+}
+
+message VoterExistResponse {
+  bool exists = 1;
+}

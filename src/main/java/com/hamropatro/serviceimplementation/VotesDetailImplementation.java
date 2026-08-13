@@ -1,13 +1,15 @@
 package com.hamropatro.serviceimplementation;
 
+import com.hamropatro.dto.ElectionDto;
 import com.hamropatro.dto.VotesDto;
-import com.hamropatro.entity.CandidateEntity;
-import com.hamropatro.entity.ElectionEntity;
 import com.hamropatro.entity.VotesEntity;
-import com.hamropatro.exceptions.CandidateNotFoundException;
+import com.hamropatro.exceptions.ElectionNotActiveException;
 import com.hamropatro.exceptions.ElectionNotFoundException;
+import com.hamropatro.exceptions.VoteNotFoundException;
+import com.hamropatro.exceptions.VoteUpdateWindowExpiredException;
 import com.hamropatro.mapper.VotesMapper;
 import com.hamropatro.repository.VotesRepository;
+import com.hamropatro.service.ElectionDetail;
 import com.hamropatro.service.VotesDetail;
 import jakarta.inject.Singleton;
 
@@ -18,14 +20,30 @@ import java.util.UUID;
 public class VotesDetailImplementation implements VotesDetail {
     private final VotesMapper votesMapper;
     private final VotesRepository votesRepository;
+    private final ElectionDetail electionDetail;
 
-    public VotesDetailImplementation(VotesMapper votesMapper, VotesRepository votesRepository) {
+    public VotesDetailImplementation(VotesMapper votesMapper, VotesRepository votesRepository, ElectionDetail electionDetail) {
         this.votesMapper = votesMapper;
         this.votesRepository = votesRepository;
+        this.electionDetail = electionDetail;
     }
 
     @Override
     public void castVote(VotesDto voteDto) {
+        ElectionDto election = electionDetail.findById(UUID.fromString(String.valueOf(voteDto.election_id())));
+
+        if (election == null) {
+            throw new ElectionNotFoundException("Election not found");
+        }
+        long now = System.currentTimeMillis();
+
+        if (now < election.start_at()) {
+            throw new ElectionNotActiveException("Election has not started yet");
+        }
+
+        if (now >= election.end_at()) {
+            throw new ElectionNotActiveException("Election has already ended");
+        }
         VotesEntity entity = votesMapper.fromVotesDtoToVotesEntity(voteDto);
         entity.setVoteId(UUID.randomUUID());
         votesRepository.castVote(entity);

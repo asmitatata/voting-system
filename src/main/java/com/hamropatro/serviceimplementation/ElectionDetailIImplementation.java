@@ -80,4 +80,16 @@ public class ElectionDetailIImplementation implements ElectionDetail {
 
         return electionRepository.exists(electionId);
     }
+//
+//    @Override
+//    public void updateStatus(UUID electionId, String status) {
+//
+//    }
+
+//    @Override
+//    public void updateStatus(UUID electionId, String status) {
+//
+//       electionRepository.updateStatus(electionId,status);
+//    }
+
 }

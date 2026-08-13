@@ -1,10 +1,15 @@
 package com.hamropatro.mapper;
 
+import com.hamropatro.Candidates;
+import com.hamropatro.Voters;
 import com.hamropatro.dto.LoginDto;
 import com.hamropatro.dto.RegisterDto;
 import com.hamropatro.dto.UserDto;
+import com.hamropatro.dto.VoterDto;
 import com.hamropatro.entity.UserEntity;
 import jakarta.inject.Singleton;
+
+import java.util.List;
 
 @Singleton
 public class AuthUserMapper {
@@ -75,5 +80,28 @@ public class AuthUserMapper {
         );
     }
 
+    public VoterDto fromUserEntityToVoterDto(UserEntity userEntity) {
+        return new VoterDto(
+                userEntity.getUserId(),
+                userEntity.getEmail(),
+                userEntity.getName()
+        );
+    }
+
+    public static Voters fromVoterDtoToVoters(VoterDto voterDto) {
+        return Voters.newBuilder()
+                .setVoterId(String.valueOf(voterDto.userId()))
+                .setVoterEmail(voterDto.email())
+                .setVoterName(voterDto.name())
+                .build();
+    }
+
+    public List<VoterDto> fromUserEntitiesToVoterDto(
+            List<UserEntity> userEntities) {
+
+        return userEntities.stream()
+                .map(this::fromUserEntityToVoterDto)
+                .toList();
+    }
 
 }

@@ -36,6 +36,6 @@ public class UserEntity {
         this.password=password;
     }
 
-    public UserEntity(UUID uuid, String email, String name, String role, String password) {
+    public UserEntity(UUID userId, String email, String fullName) {
     }
 }
