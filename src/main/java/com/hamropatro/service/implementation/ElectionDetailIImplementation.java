@@ -45,6 +45,7 @@ public class ElectionDetailIImplementation implements ElectionDetail {
         var entity = electionRepository.findById(electionId);
         String key = cacheKey(electionId);
         var cached = electionDtoCache.get(key);
+        System.out.println(cached);
         if (cached.isPresent()) {
             return cached;
         }
