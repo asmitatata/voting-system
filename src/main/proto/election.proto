@@ -9,17 +9,13 @@ import "common.proto";
 package com.hamropatro;
 
 service ElectionService {
-  rpc createElection(CreateElectionRequest)returns (Response){}
+  rpc CreateElection(CreateElectionRequest)returns (Response){}
 
-  rpc getElection (ElectionIdRequest) returns (getElectionResponse) {}
+  rpc GetElectionByElectionId(ElectionIdRequest) returns (GetElectionResponse) {}
 
-  rpc listElection (Empty) returns (getAllElectionResponse) {}
+  rpc GetAllElections(Empty) returns (GetAllElectionResponse) {}
 
-  rpc updateElection(UpdateElectionRequest)returns (Response){}
-
-  rpc deleteElection(ElectionIdRequest) returns (Response){}
-
-  rpc electionExists(ElectionIdRequest)returns (ElectionExistsResponse){}
+  rpc UpdateElection(UpdateElectionRequest)returns (Response){}
 
 }
 
@@ -29,13 +25,16 @@ message CreateElectionRequest{
   int32 max_votes = 3;
   int64 start_at = 4;
   int64 end_at = 5;
+  bool isActive = 6;
+  string start_time = 7;
+  string end_time = 8;
 }
 
 message ElectionIdRequest {
   string election_id = 1;
 }
 
-message getElectionResponse {
+message GetElectionResponse {
   string election_id = 1;
   string election_name = 2;
   repeated Candidates candidate = 3;
@@ -43,23 +42,25 @@ message getElectionResponse {
   int32 max_votes = 5;
   int64 start_at = 6;
   int64 end_at = 7;
-  int64 created_at = 8;
-  int64 updated_at =9;
-  string status = 10;
+  bool isActive = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
+  string start_time = 11;
+  string end_time = 12;
 }
 
-message getAllElectionResponse{
+message GetAllElectionResponse{
   repeated Elections elections = 1;
 }
 
 message UpdateElectionRequest{
   string election_id = 1;
   string election_name = 2;
-  string voting_type = 3;
-  int32 max_votes = 4;
   int64 start_at = 5;
   int64 end_at = 6;
-  string status = 8;
+  bool isActive = 7;
+  string start_time = 8;
+  string end_time = 9;
 }
 
 message ElectionExistsResponse{

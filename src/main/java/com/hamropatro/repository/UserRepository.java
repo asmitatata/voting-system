@@ -2,86 +2,68 @@ package com.hamropatro.repository;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.hamropatro.dto.UserDto;
 import com.hamropatro.entity.UserEntity;
+import com.hamropatro.enums.Role;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import static com.hamropatro.query.AuthQuery.FIND_ALL_USER_QUERY;
+import static com.hamropatro.query.AuthQuery.FIND_BY_USER_ID_QUERY;
 
 @Singleton
 public class UserRepository {
-
     private final CqlSession session;
 
     public UserRepository(CqlSession session) {
         this.session = session;
     }
 
-    public void register(UserEntity user) {
-        String query =
-                "INSERT INTO voting_system.users(user_id,email,full_name,role,password,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)";
-
-        session.execute(
-                SimpleStatement.newInstance(
-                        query,
-                        user.getUserId(),
-                        user.getEmail(),
-                        user.getName(),
-                        user.getRole(),
-                        user.getPassword(),
-                        user.isActive(),
-                        user.getCreated_at(),
-                        user.getUpdated_at()
-                )
-        );
+    public Optional<UserEntity> findById(UUID userId) {
+        var preparedStatement = session.prepare(FIND_BY_USER_ID_QUERY);
+        var boundStatement = preparedStatement.bind(userId);
+        var resultSet = session.execute(boundStatement);
+        var row = resultSet.one();
+        return Optional.ofNullable(mapUserEntity(row));
     }
 
-    public UserDto findByEmail(String email) {
+    public List<UserEntity> findAll() {
+        var preparedStatement = session.prepare(FIND_ALL_USER_QUERY);
+        var boundStatement = preparedStatement.bind();
+        var resultSet = session.execute(boundStatement);
+        var rows = resultSet.all();
+        return userEntityList(rows);
+    }
 
-        String query =
-                "SELECT * FROM voting_system.users WHERE email = ?";
-
-        Row row = session.execute(
-                SimpleStatement.newInstance(query, email)
-        ).one();
+    public static UserEntity mapUserEntity(Row row) {
 
         if (row == null) {
             return null;
         }
-        return new UserDto(
+
+        return new UserEntity(
                 row.getUuid("user_id"),
                 row.getString("email"),
                 row.getString("full_name"),
                 row.getString("password"),
-                row.getString("role"),
+                Role.valueOf(row.getString("role").toUpperCase()),
                 row.getBoolean("is_active"),
                 row.getInstant("created_at").toEpochMilli(),
                 row.getInstant("updated_at").toEpochMilli()
         );
     }
 
-    public UserDto findById(UUID userId) {
+    public static List<UserEntity> userEntityList(List<Row> rows) {
 
-        String query =
-                "SELECT * FROM voting_system.users WHERE user_id = ?";
-
-        Row row = session.execute(
-                SimpleStatement.newInstance(query, userId)
-        ).one();
-
-        if (row == null) {
-            return null;
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
         }
-        return new UserDto(
-                row.getUuid("user_id"),
-                row.getString("email"),
-                row.getString("full_name"),
-                row.getString("password"),
-                row.getString("role"),
-                row.getBoolean("is_active"),
-                row.getInstant("created_at").toEpochMilli(),
-                row.getInstant("updated_at").toEpochMilli()
-        );
+
+        return rows.stream()
+                .map(UserRepository::mapUserEntity)
+                .toList();
     }
+
 }

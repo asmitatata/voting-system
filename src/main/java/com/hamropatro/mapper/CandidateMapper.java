@@ -1,40 +1,48 @@
 package com.hamropatro.mapper;
 
 import com.hamropatro.Candidates;
-import com.hamropatro.dto.CandidateDto;
+import com.hamropatro.dto.CandidateDto.CandidateDto;
 import com.hamropatro.entity.CandidateEntity;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
+
 @Singleton
 public class CandidateMapper {
     public CandidateEntity fromCandidateDtotoCandidateEntity(CandidateDto candidateDto) {
-        return new CandidateEntity(
-                candidateDto.candidate_id(),
-                candidateDto.election_id(),
-                candidateDto.full_name(),
-                candidateDto.created_at(),
-                candidateDto.updated_at()
-        );
+        return CandidateEntity.builder()
+                .candidateId(candidateDto.candidateId())
+                .electionId(candidateDto.electionId())
+                .candidateEmail(candidateDto.candidateEmail())
+                .candidateName(candidateDto.candidateName())
+                .candidateAge(candidateDto.candidateAge())
+                .createdAt(Instant.now().toEpochMilli())
+                .updatedAt(Instant.now().toEpochMilli())
+                .build();
     }
 
     public CandidateDto fromCandidateEntitytoCandidateDto(CandidateEntity candidateEntity) {
-        return new CandidateDto(
-                candidateEntity.getCandidate_id(),
-                candidateEntity.getElection_id(),
-                candidateEntity.getFull_name(),
-                candidateEntity.getCreated_at(),
-                candidateEntity.getUpdated_at()
-        );
+        return CandidateDto.builder()
+                .candidateId(candidateEntity.getCandidateId())
+                .electionId(candidateEntity.getElectionId())
+                .candidateName(candidateEntity.getCandidateName())
+                .candidateAge(candidateEntity.getCandidateAge())
+                .candidateEmail(candidateEntity.getCandidateEmail())
+                .createdAt(candidateEntity.getCreatedAt())
+                .updatedAt(candidateEntity.getUpdatedAt())
+                .build();
     }
 
     public static Candidates fromCandidateDtotoCandidates(CandidateDto candidateDto) {
         return Candidates.newBuilder()
-                .setCandidateId(String.valueOf(candidateDto.candidate_id()))
-                .setCandidateName(candidateDto.full_name())
-                .setElectionId(String.valueOf(candidateDto.election_id()))
-                .setCreatedAt(candidateDto.created_at())
-                .setUpdatedAt(candidateDto.updated_at())
+                .setCandidateId(String.valueOf(candidateDto.candidateId()))
+                .setCandidateName(candidateDto.candidateName())
+                .setCandidateAge(candidateDto.candidateAge())
+                .setCandidateEmail(candidateDto.candidateEmail())
+                .setElectionId(String.valueOf(candidateDto.electionId()))
+                .setCreatedAt(candidateDto.createdAt())
+                .setUpdatedAt(candidateDto.updatedAt())
                 .build();
     }
 

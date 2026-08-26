@@ -2,55 +2,57 @@ package com.hamropatro.mapper;
 
 import com.hamropatro.Votes;
 import com.hamropatro.VotesByElectionId;
-import com.hamropatro.dto.VotesDto;
+import com.hamropatro.dto.votesDto.VotesDto;
 import com.hamropatro.entity.VotesEntity;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 
 @Singleton
 public class VotesMapper {
 
-    public VotesEntity fromVotesDtoToVotesEntity(VotesDto votesDto){
-        return new VotesEntity(
-                votesDto.user_id(),
-                votesDto.election_id(),
-                votesDto.vote_id(),
-                votesDto.candidate_id(),
-                votesDto.vote_count(),
-                votesDto.created_at(),
-                votesDto.updated_at()
-        );
+    public VotesEntity fromVotesDtoToVotesEntity(VotesDto votesDto) {
+        return VotesEntity.builder()
+                .userId(votesDto.userId())
+                .electionId(votesDto.electionId())
+                .voteDate(votesDto.voteDate())
+                .candidateId(votesDto.candidateId())
+                .voteCount(votesDto.voteCount())
+                .createdAt(Instant.now().toEpochMilli())
+                .updatedAt(Instant.now().toEpochMilli())
+                .build();
+
     }
 
-    public VotesDto fromVotesEntitytoVotesDto(VotesEntity votesEntity){
-        return new VotesDto(
-                votesEntity.getUserId(),
-                votesEntity.getElectionId(),
-                votesEntity.getVoteId(),
-                votesEntity.getCandidateId(),
-                votesEntity.getVoteCount(),
-                votesEntity.getCreatedAt(),
-                votesEntity.getUpdatedAt()
-        );
+    public VotesDto fromVotesEntitytoVotesDto(VotesEntity votesEntity) {
+        return VotesDto.builder()
+                .userId(votesEntity.getUserId())
+                .electionId(votesEntity.getElectionId())
+                .voteDate(votesEntity.getVoteDate())
+                .candidateId(votesEntity.getCandidateId())
+                .voteCount(votesEntity.getVoteCount())
+                .createdAt(votesEntity.getCreatedAt())
+                .updatedAt(votesEntity.getUpdatedAt())
+                .build();
     }
 
     public static Votes fromVotesDtotoVotes(VotesDto votesDto) {
         return Votes.newBuilder()
-                .setElectionId(String.valueOf(votesDto.election_id()))
-                .setVoteId(String.valueOf(votesDto.vote_id()))
-                .setUserId(String.valueOf(votesDto.user_id()))
-                .setCandidateId(String.valueOf(votesDto.candidate_id()))
-                .setVoteCount(votesDto.vote_count())
-                .setCreatedAt(votesDto.created_at())
-                .setUpdatedAt(votesDto.updated_at())
+                .setElectionId(String.valueOf(votesDto.electionId()))
+                .setUserId(String.valueOf(votesDto.userId()))
+                .setCandidateId(String.valueOf(votesDto.candidateId()))
+                .setVoteCount(votesDto.voteCount())
+                .setCreatedAt(votesDto.createdAt())
+                .setUpdatedAt(votesDto.updatedAt())
                 .build();
     }
+
     public static VotesByElectionId fromVotesDtotoVotesByElectionId(VotesDto votesDto) {
         return VotesByElectionId.newBuilder()
-                .setElectionId(String.valueOf(votesDto.election_id()))
-                .setCandidateId(String.valueOf(votesDto.candidate_id()))
-                .setVoteCount(votesDto.vote_count())
+                .setElectionId(String.valueOf(votesDto.electionId()))
+                .setCandidateId(String.valueOf(votesDto.candidateId()))
+                .setVoteCount(votesDto.voteCount())
                 .build();
     }
 

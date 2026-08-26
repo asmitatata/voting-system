@@ -13,27 +13,31 @@ message Empty{}
 message Candidates{
   string candidate_id = 1;
   string candidate_name = 2;
-  string election_id = 3;
-  int64 created_at = 4;
-  int64 updated_at = 5;
+  string candidate_email = 3;
+  int32 candidate_age = 4;
+  string election_id = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
 }
-message Voters{
-  string voter_id = 1;
-  string voter_name = 2;
-  string voter_email = 3;
+message Users{
+  string user_id = 1;
+  string user_name = 2;
+  string user_email = 3;
 }
 
 message Elections{
   string election_id = 1;
   string election_name = 2;
-  repeated Candidates candidate=3;
+  repeated Candidates candidate = 3;
   string voting_type = 4;
   int32 max_votes = 5;
   int64 start_at = 6;
   int64 end_at = 7;
-  int64 created_at = 8;
-  int64 updated_at = 9;
-  string status = 10;
+  bool isActive = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
+  string start_time = 11;
+  string end_time = 12;
 }
 message VotesByElectionId{
   string election_id = 1;
@@ -41,16 +45,15 @@ message VotesByElectionId{
   int32 vote_count = 3;
 }
 message Votes{
-  string vote_id = 1;
   string election_id = 2;
   string user_id = 3;
   string candidate_id = 4;
   int64 created_at = 5;
   int64 updated_at = 6;
-  int32 vote_count=7;
+  int32 vote_count = 7;
 }
 
 message Response{
-  string message=1;
+  string message = 1;
 }
 

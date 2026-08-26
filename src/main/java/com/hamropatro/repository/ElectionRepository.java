@@ -7,9 +7,11 @@ import com.hamropatro.entity.ElectionEntity;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import static com.hamropatro.query.ElectionQuery.*;
 
 @Singleton
 public class ElectionRepository {
@@ -20,119 +22,86 @@ public class ElectionRepository {
     }
 
     public void save(ElectionEntity election) {
-        String query =
-                "INSERT INTO voting_system.election(election_id,election_name,voting_type,max_votes,start_at,end_at,created_at,updated_at,status) VALUES (?,?,?,?,?,?,?,?,?)";
-
         session.execute(
                 SimpleStatement.newInstance(
-                        query,
-                        election.getElection_id(),
-                        election.getElection_name(),
-                        election.getVoting_type(),
-                        election.getMax_votes(),
-                        Instant.ofEpochMilli(election.getStart_at()),
-                        Instant.ofEpochMilli(election.getEnd_at()),
-                        Instant.ofEpochMilli(election.getCreated_at()),
-                        Instant.ofEpochMilli(election.getUpdated_at()),
-                        election.getStatus()
+                        CREATE_ELECTION,
+                        election.getElectionId(),
+                        election.getElectionName(),
+                        election.getVotingType(),
+                        election.getMaxVotes(),
+                        Instant.ofEpochMilli(election.getStartAt()),
+                        Instant.ofEpochMilli(election.getEndAt()),
+                        election.isActive(),
+                        Instant.ofEpochMilli(election.getCreatedAt()),
+                        Instant.ofEpochMilli(election.getUpdatedAt()),
+                        election.getStartTime(),
+                        election.getEndTime()
                 )
         );
     }
 
-    public ElectionEntity findById(UUID electionId) {
-        String query =
-                "SELECT * FROM voting_system.election WHERE election_id=? ";
-        Row row = session.execute(
-                SimpleStatement.newInstance(query, electionId)
-        ).one();
-
-        if (row == null) {
-            return null;
-        }
-
-        return new ElectionEntity(
-                row.getUuid("election_id"),
-
-                row.getString("election_name"),
-                row.getString("voting_type"),
-                row.getInt("max_votes"),
-                row.getInstant("start_at").toEpochMilli(),
-                row.getInstant("end_at").toEpochMilli(),
-                row.getInstant("created_at").toEpochMilli(),
-                row.getInstant("updated_at").toEpochMilli(),
-                row.getString("status")
-        );
+    public Optional<ElectionEntity> findById(UUID electionId) {
+        var preparedStatement = session.prepare(FIND_BY_ELECTION_ID_QUERY);
+        var boundStatement = preparedStatement.bind(electionId);
+        var resultSet = session.execute(boundStatement);
+        var row = resultSet.one();
+        return Optional.ofNullable(mapElection(row));
     }
 
     public List<ElectionEntity> findAll() {
-        String query =
-                "SELECT * FROM voting_system.election ";
-        List<Row> rows = session.execute(
-                SimpleStatement.newInstance(query)
-        ).all();
-
-        List<ElectionEntity> elections = new ArrayList<>();
-
-        for (Row row : rows) {
-            long startAt = row.getInstant("start_at").toEpochMilli();
-            long endAt = row.getInstant("end_at").toEpochMilli();
-            long createdAt = row.getInstant("created_at").toEpochMilli();
-            long updatedAt = row.getInstant("updated_at").toEpochMilli();
-
-            elections.add(
-                    ElectionEntity.builder()
-                            .election_id(row.getUuid("election_id"))
-                            .election_name(row.getString("election_name"))
-                            .voting_type(row.getString("voting_type"))
-                            .max_votes(row.getInt("max_votes"))
-                            .start_at(startAt)
-                            .end_at(endAt)
-                            .created_at(createdAt)
-                            .updated_at(updatedAt)
-                            .status(row.getString("status"))
-                            .build()
-            );
-        }
-
-        return elections;
+        var preparedStatement = session.prepare(FIND_ALL_ELECTION_QUERY);
+        var boundStatement = preparedStatement.bind();
+        var resultSet = session.execute(boundStatement);
+        var rows = resultSet.all();
+        return mapElectionList(rows);
     }
 
     public void update(UUID electionId, ElectionEntity election) {
-        String query =
-                "UPDATE voting_system.election SET election_name=?, voting_type=?, max_votes=?, start_at=?, end_at=?, updated_at=?, status=? WHERE election_id=?;";
-
         session.execute(
                 SimpleStatement.newInstance(
-                        query,
-                        election.getElection_name(),
-                        election.getVoting_type(),
-                        election.getMax_votes(),
-                        Instant.ofEpochMilli(election.getStart_at()),
-                        Instant.ofEpochMilli(election.getEnd_at()),
-                        Instant.ofEpochMilli(election.getUpdated_at()),
-                        election.getStatus(),
+                        UPDATE_ELECTION_QUERY,
+                        election.getElectionName(),
+                        Instant.ofEpochMilli(election.getStartAt()),
+                        Instant.ofEpochMilli(election.getEndAt()),
+                        election.isActive(),
+                        election.getStartTime(),
+                        election.getEndTime(),
+                        election.getUpdatedAt(),
                         electionId
                 )
         );
     }
 
-    public void delete(UUID electionId) {
-        String query =
-                "DELETE FROM voting_system.election WHERE election_id=? ";
-        session.execute(
-                SimpleStatement.newInstance(query, electionId)
-        ).one();
+    public static ElectionEntity mapElection(Row row) {
+
+        if (row == null) {
+            return null;
+        }
+
+        return ElectionEntity.builder()
+                .electionId(row.getUuid("election_id"))
+                .electionName(row.getString("election_name"))
+                .votingType(row.getString("voting_type"))
+                .maxVotes(row.getInt("max_votes"))
+                .startAt(row.getInstant("start_at").toEpochMilli())
+                .endAt(row.getInstant("end_at").toEpochMilli())
+                .isActive(row.getBoolean("is_active"))
+                .createdAt(row.getInstant("created_at").toEpochMilli())
+                .updatedAt(row.getInstant("updated_at").toEpochMilli())
+                .startTime(row.getString("start_time"))
+                .endTime(row.getString("end_time"))
+                .build();
     }
 
-    public boolean exists(UUID electionId) {
-        String query =
-                "SELECT election_id FROM voting_system.election WHERE election_id=?";
+    public static List<ElectionEntity> mapElectionList(List<Row> rows) {
 
-        Row row = session.execute(
-                SimpleStatement.newInstance(query, electionId)
-        ).one();
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
 
-        return row != null;
+        return rows.stream()
+                .map(ElectionRepository::mapElection)
+                .toList();
     }
 
 }

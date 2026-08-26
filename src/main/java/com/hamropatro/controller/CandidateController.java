@@ -1,33 +1,40 @@
 package com.hamropatro.controller;
 
 import com.hamropatro.*;
-import com.hamropatro.dto.CandidateDto;
+import com.hamropatro.dto.CandidateDto.CandidateDto;
+import com.hamropatro.exceptions.InvalidCredentialException;
+import com.hamropatro.interceptor.AuthContext;
 import com.hamropatro.mapper.CandidateMapper;
 import com.hamropatro.service.CandidateDetail;
+import com.hamropatro.validation.Validate;
 import io.grpc.stub.StreamObserver;
 import io.micronaut.grpc.annotation.GrpcService;
+import jakarta.inject.Named;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @GrpcService
 public class CandidateController extends CandidateServiceGrpc.CandidateServiceImplBase {
     private final CandidateDetail candidateDetail;
+    private final Validate<CandidateDto> validateCandidate;
 
-    public CandidateController(CandidateDetail candidateDetail) {
+    public CandidateController(CandidateDetail candidateDetail,
+                               @Named("CandidateValidator") Validate<CandidateDto> validateCandidate) {
         this.candidateDetail = candidateDetail;
+        this.validateCandidate = validateCandidate;
     }
-    long now = Instant.now().toEpochMilli();
+
     @Override
     public void createCandidate(CreateCandidateRequest request, StreamObserver<Response> responseStreamObserver) {
-        var dto = new CandidateDto(
-                null,
-                UUID.fromString(request.getElectionId()),
-                request.getCandidateName(),
-                now,
-                0l
-        );
+        AuthContext.requireAdmin();
+        var dto = CandidateDto.builder()
+                .electionId(UUID.fromString(request.getElectionId()))
+                .candidateName(request.getCandidateName())
+                .candidateAge(request.getCandidateAge())
+                .candidateEmail(request.getCandidateEmail())
+                .build();
+        validateCandidate.validate(dto);
         candidateDetail.save(dto);
         Response response =
                 Response.newBuilder()
@@ -39,56 +46,66 @@ public class CandidateController extends CandidateServiceGrpc.CandidateServiceIm
     }
 
     @Override
-    public void getCandidate(CandidateIdRequest request, StreamObserver<getCandidateResponse> responseObserver) {
-        CandidateDto dto = candidateDetail.findById(UUID.fromString(request.getCandidateId()));
-        candidateDetail.findById(dto.candidate_id());
-        getCandidateResponse response = getCandidateResponse.newBuilder()
-                .setCandidateId(String.valueOf(dto.candidate_id()))
-                .setElectionId(String.valueOf(dto.election_id()))
-                .setCandidateName(dto.full_name())
-                .setCreatedAt(dto.created_at())
+    public void getCandidateByCandidateId(CandidateIdRequest request, StreamObserver<GetCandidateByCandidateIdResponse> responseObserver) {
+        AuthContext.requireAdmin();
+        var dto = candidateDetail.findById(UUID.fromString(request.getCandidateId()))
+                .orElseThrow(() ->
+                        new InvalidCredentialException("Candidate Not Found")
+                );
+        candidateDetail.findById(dto.candidateId());
+        var response = GetCandidateByCandidateIdResponse.newBuilder()
+                .setCandidateId(String.valueOf(dto.candidateId()))
+                .setElectionId(String.valueOf(dto.electionId()))
+                .setCandidateName(dto.candidateName())
+                .setCandidateAge(dto.candidateAge())
+                .setCandidateEmail(dto.candidateName())
+                .setCreatedAt(dto.createdAt())
                 .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
     @Override
-    public void listCandidate(Empty request, StreamObserver<getAllCandidateResponse> responseStreamObserver) {
+    public void getAllCandidate(Empty request, StreamObserver<GetAllCandidateResponse> responseStreamObserver) {
+        AuthContext.requireAdmin();
         List<CandidateDto> dto = candidateDetail.findAll();
 
         List<Candidates> candidates = dto.stream()
                 .map(CandidateMapper::fromCandidateDtotoCandidates)
                 .toList();
 
-        getAllCandidateResponse response = getAllCandidateResponse.newBuilder().addAllCandidate(candidates).build();
+        var response = GetAllCandidateResponse.newBuilder().addAllCandidate(candidates).build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }
 
     @Override
-    public void listCandidateByElectionId(CandidateByElectionIdRequest request, StreamObserver<getAllCandidateResponse> responseStreamObserver) {
+    public void getAllCandidateByElectionId(CandidateByElectionIdRequest request, StreamObserver<GetAllCandidateResponse> responseStreamObserver) {
+        AuthContext.requireAdminOrVoter();
         List<CandidateDto> dto = candidateDetail.findByElectionId(UUID.fromString(request.getElectionId()));
 
         List<Candidates> candidates = dto.stream()
                 .map(CandidateMapper::fromCandidateDtotoCandidates)
                 .toList();
 
-        getAllCandidateResponse response = getAllCandidateResponse.newBuilder().addAllCandidate(candidates).build();
+        var response = GetAllCandidateResponse.newBuilder().addAllCandidate(candidates).build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }
 
     @Override
-    public void updateCandidate (UpdateCandidateRequest request, StreamObserver<Response> responseStreamObserver) {
+    public void updateCandidate(UpdateCandidateRequest request, StreamObserver<Response> responseStreamObserver) {
+        AuthContext.requireAdmin();
         var candidateId = UUID.fromString(request.getCandidateId());
-        var dto = new CandidateDto(
-                UUID.fromString(request.getCandidateId()),
-                UUID.fromString(request.getElectionId()),
-                request.getCandidateName(),
-                0l,
-                0l
-        );
-        candidateDetail.update(candidateId,dto);
+        var dto = CandidateDto.builder()
+                .candidateId(UUID.fromString(request.getCandidateId()))
+                .electionId(UUID.fromString(request.getElectionId()))
+                .candidateName(request.getCandidateName())
+                .candidateAge(request.getCandidateAge())
+                .candidateEmail(request.getCandidateEmail())
+                .build();
+        validateCandidate.validate(dto);
+        candidateDetail.update(candidateId, dto);
         Response response =
                 Response.newBuilder()
                         .setMessage("Candidate  " + request.getCandidateName() + " saved successfully")
@@ -101,7 +118,7 @@ public class CandidateController extends CandidateServiceGrpc.CandidateServiceIm
 
     @Override
     public void deleteCandidate(CandidateIdRequest request, StreamObserver<Response> responseStreamObserver) {
-
+        AuthContext.requireAdmin();
         var candidateId = UUID.fromString(request.getCandidateId());
         candidateDetail.delete(candidateId);
         var response =
@@ -109,20 +126,6 @@ public class CandidateController extends CandidateServiceGrpc.CandidateServiceIm
                         .setMessage("Candidate deleted successfully")
                         .build();
 
-        responseStreamObserver.onNext(response);
-        responseStreamObserver.onCompleted();
-    }
-
-    @Override
-    public void candidateExists(CandidateIdRequest request, StreamObserver<CandidateExistResponse> responseStreamObserver) {
-        UUID candidateId = UUID.fromString(request.getCandidateId());
-
-        boolean exists = candidateDetail.exists(candidateId);
-
-        CandidateExistResponse response =
-                CandidateExistResponse.newBuilder()
-                        .setExists(exists)
-                        .build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }

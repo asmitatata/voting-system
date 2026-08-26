@@ -8,10 +8,10 @@ option objc_class_prefix = "ASP";
 package com.hamropatro;
 
 service AuthService {
-  rpc register(RegisterRequest) returns(RegisterResponse);
-  rpc login(LoginRequest) returns(LoginResponse);
-  rpc loginRefresh(RefreshRequest) returns(LoginResponse);
-  rpc googleLogin(GoogleLoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns(RegisterResponse);
+  rpc Login(LoginRequest) returns(LoginResponse);
+  rpc LoginRefresh(RefreshRequest) returns(LoginResponse);
+  rpc GoogleLogin(GoogleLoginRequest) returns (LoginResponse);
 }
 
 message RegisterRequest{

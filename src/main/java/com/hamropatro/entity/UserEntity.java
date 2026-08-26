@@ -1,6 +1,7 @@
 package com.hamropatro.entity;
 
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
+import com.hamropatro.enums.Role;
 import lombok.Builder;
 import lombok.Data;
 
@@ -15,27 +16,30 @@ public class UserEntity {
     private String email;
     private String name;
     private String password;
-    private String role;
-    private  boolean isActive;
-    private long created_at;
-    private long updated_at;
+    private Role role;
+    private boolean isActive;
+    private long createdAt;
+    private long updatedAt;
 
-    public UserEntity(UUID userId, String email, String name, String password, String role,boolean isActive,long created_at,long updated_at) {
+    public UserEntity(UUID userId, String email, String name, String password, Role role, boolean isActive, long createdAt, long updatedAt) {
         this.userId = userId;
         this.email = email;
         this.name = name;
-        this.role = role;
         this.password = password;
-        this.isActive=isActive;
-        this.created_at =created_at;
-        this.updated_at =updated_at;
+        this.role = role;
+        this.isActive = isActive;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public UserEntity(String email, String password) {
-        this.email=email;
-        this.password=password;
+        this.email = email;
+        this.password = password;
     }
 
-    public UserEntity(UUID userId, String email, String fullName) {
+    public UserEntity(UUID userId, String email, Role role) {
+        this.userId = userId;
+        this.email = email;
+        this.role = role;
     }
 }

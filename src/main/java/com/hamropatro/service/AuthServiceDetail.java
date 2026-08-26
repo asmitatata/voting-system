@@ -1,7 +1,10 @@
 package com.hamropatro.service;
 
 
-import com.hamropatro.dto.*;
+import com.hamropatro.dto.authenticationDto.LoginDto;
+import com.hamropatro.dto.authenticationDto.LoginResponseDto;
+import com.hamropatro.dto.authenticationDto.RegisterDto;
+import com.hamropatro.dto.userDto.UserDto;
 
 public interface AuthServiceDetail {
 
@@ -11,5 +14,5 @@ public interface AuthServiceDetail {
 
     LoginResponseDto refresh(UserDto userDto);
 
-    LoginResponseDto googleLogin(GoogleLoginDto googleLoginDto);
+    LoginResponseDto googleLogin(String idToken);
 }

@@ -11,21 +11,25 @@ import java.util.UUID;
 @Builder
 public class CandidateEntity {
     @PartitionKey
-    private UUID candidate_id;
+    private UUID candidateId;
 
     @ClusteringColumn
-    private UUID election_id;
+    private UUID electionId;
 
-    private String full_name;
-    private long created_at;
-    private long updated_at;
+    private String candidateName;
+    private int candidateAge;
+    private String candidateEmail;
+    private long createdAt;
+    private long updatedAt;
 
 
-    public CandidateEntity(UUID candidate_id,UUID election_id,String full_name,long created_at,long updated_at){
-        this.candidate_id=candidate_id;
-        this.full_name=full_name;
-        this.election_id=election_id;
-        this.created_at=created_at;
-        this.updated_at=updated_at;
+    public CandidateEntity(UUID candidateId, UUID electionId, String candidateName, int candidateAge, String candidateEmail, long createdAt, long updatedAt) {
+        this.candidateId = candidateId;
+        this.candidateName = candidateName;
+        this.candidateAge = candidateAge;
+        this.candidateEmail = candidateEmail;
+        this.electionId = electionId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 }

@@ -1,14 +1,15 @@
 package com.hamropatro.service;
 
-import com.hamropatro.dto.CandidateDto;
+import com.hamropatro.dto.CandidateDto.CandidateDto;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CandidateDetail {
     void save(CandidateDto candidateDto);
 
-    CandidateDto findById(UUID candidateId);
+    Optional<CandidateDto> findById(UUID candidateId);
 
     List<CandidateDto> findAll();
 
@@ -18,5 +19,4 @@ public interface CandidateDetail {
 
     void delete(UUID candidateId);
 
-    boolean exists(UUID candidateId);
 }

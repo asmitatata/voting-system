@@ -10,26 +10,30 @@ import java.util.UUID;
 @Builder
 public class ElectionEntity {
     @PartitionKey
-    private UUID election_id;
+    private UUID electionId;
 
-    private String election_name;
-    private String voting_type;
-    private int max_votes;
-    private long start_at;
-    private long end_at;
-    private long created_at;
-    private long updated_at;
-    private String status;
+    private String electionName;
+    private String votingType;
+    private int maxVotes;
+    private long startAt;
+    private long endAt;
+    private boolean isActive;
+    private long createdAt;
+    private long updatedAt;
+    private String startTime;
+    private String endTime;
 
-    public ElectionEntity(UUID election_id, String election_name, String voting_type, int max_votes, long start_at, long end_at, long created_at, long updated_at, String status){
-        this.election_id=election_id;
-        this.election_name=election_name;
-        this.voting_type=voting_type;
-        this.max_votes=max_votes;
-        this.start_at=start_at;
-        this.end_at=end_at;
-        this.created_at=created_at;
-        this.updated_at=updated_at;
-        this.status=status;
+    public ElectionEntity(UUID electionId, String electionName, String votingType, int maxVotes, long startAt, long endAt, boolean isActive, long createdAt, long updatedAt, String startTime, String endTime) {
+        this.electionId = electionId;
+        this.electionName = electionName;
+        this.votingType = votingType;
+        this.maxVotes = maxVotes;
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.isActive = isActive;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 }

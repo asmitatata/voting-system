@@ -1,6 +1,6 @@
 package com.hamropatro.jwt;
 
-import com.hamropatro.dto.UserDto;
+import com.hamropatro.dto.userDto.UserDto;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import io.micronaut.context.annotation.Value;
@@ -27,10 +27,9 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(user.userId().toString())
                 .claim("email", user.email())
-                .claim("name", user.name())
                 .claim("role", user.role())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000))
+                .expiration(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000))
                 .signWith(getKey())
                 .compact();
     }
@@ -41,7 +40,7 @@ public class JwtUtil {
                 .subject(user.userId().toString())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis()
-                        + 15*24 * 60 * 60 * 1000))
+                        + 15 * 24 * 60 * 60 * 1000))
                 .signWith(getKey())
                 .compact();
     }

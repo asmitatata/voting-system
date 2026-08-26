@@ -1,61 +1,49 @@
 package com.hamropatro.controller;
 
 import com.hamropatro.*;
-import com.hamropatro.dto.VotesDto;
-import com.hamropatro.mapper.VotesMapper;
+import com.hamropatro.dto.votesDto.VotesDto;
+import com.hamropatro.interceptor.AuthContext;
+import com.hamropatro.kafka.publisher.VotePublisher;
 import com.hamropatro.service.VotesDetail;
+import com.hamropatro.validation.Validate;
 import io.grpc.stub.StreamObserver;
 import io.micronaut.grpc.annotation.GrpcService;
+import jakarta.inject.Named;
+import lombok.extern.slf4j.Slf4j;
 
-import java.time.Instant;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @GrpcService
-public class VotingController extends VotingSystemServiceGrpc.VotingSystemServiceImplBase {
+@Slf4j
+public class VotingController extends VotingServiceGrpc.VotingServiceImplBase {
     private final VotesDetail votesDetail;
+    private final VotePublisher kafkaVoteProducer;
+    private final Validate<VotesDto> votesValidator;
 
-    public VotingController(VotesDetail votesDetail) {
+    public VotingController(VotesDetail votesDetail, VotePublisher kafkaVoteProducer,
+                            @Named("VotesValidator") Validate<VotesDto> votesValidator) {
         this.votesDetail = votesDetail;
+        this.kafkaVoteProducer = kafkaVoteProducer;
+        this.votesValidator = votesValidator;
     }
-    long now = Instant.now().toEpochMilli();
 
     @Override
     public void castVote(CastVoteRequest request, StreamObserver<Response> responseStreamObserver) {
-        var dto = new VotesDto(
-                UUID.fromString(request.getUserId()),
-                UUID.fromString(request.getElectionId()),
-                null,
-                UUID.fromString(request.getCandidateId()),
-                request.getVoteCount(),
-                now,
-                0l
-        );
-        votesDetail.castVote(dto);
+        AuthContext.requireAdminOrVoter();
+        var dto = VotesDto.builder()
+                .userId(UUID.fromString(request.getUserId()))
+                .electionId(UUID.fromString(request.getElectionId()))
+                .voteDate(LocalDate.now())
+                .candidateId(UUID.fromString(request.getCandidateId()))
+                .voteCount(request.getVoteCount())
+                .build();
+        votesValidator.validate(dto);
+        kafkaVoteProducer.publishVote(dto);
+
         Response response =
                 Response.newBuilder()
-                        .setMessage("Vote for " + request.getCandidateId() + " saved successfully")
-                        .build();
-
-        responseStreamObserver.onNext(response);
-        responseStreamObserver.onCompleted();
-    }
-
-    public void updateVote(UpdateVoteRequest request, StreamObserver<Response> responseStreamObserver) {
-        var voteId=UUID.fromString(request.getVoteId());
-        var dto = new VotesDto(
-                UUID.fromString(request.getUserId()),
-                UUID.fromString(request.getElectionId()),
-                UUID.fromString(request.getVoteId()),
-                UUID.fromString(request.getCandidateId()),
-                request.getVoteCount(),
-                0l,
-                0l
-        );
-        votesDetail.updateVote(voteId,dto);
-        Response response =
-                Response.newBuilder()
-                        .setMessage("Vote for " + request.getCandidateId() + " saved successfully")
+                        .setMessage("Vote saved successfully")
                         .build();
 
         responseStreamObserver.onNext(response);
@@ -63,37 +51,8 @@ public class VotingController extends VotingSystemServiceGrpc.VotingSystemServic
     }
 
     @Override
-    public void hasVoted(VoteExistsRequest request, StreamObserver<VoteExistsResponse> responseStreamObserver) {
-        UUID electionId = UUID.fromString(request.getElectionId());
-        UUID userId = UUID.fromString(request.getUserId());
-
-        boolean hasVoted = votesDetail.hasVoted(electionId,userId);
-
-        VoteExistsResponse response =
-                VoteExistsResponse.newBuilder()
-                        .setExists(hasVoted)
-                        .build();
-        responseStreamObserver.onNext(response);
-        responseStreamObserver.onCompleted();
-    }
-
-    @Override
-    public void getVotesByElectionId(VotesByElectionIdRequest request, StreamObserver<getVotesByElectionIdResponse> responseStreamObserver) {
-        var electionId=UUID.fromString(request.getElectionId());
-//        var userId=UUID.fromString(request.getUserId());
-        List<VotesDto> dto = votesDetail.findVotesByElection(electionId);
-
-        List<VotesByElectionId> votes = dto.stream()
-                .map(VotesMapper::fromVotesDtotoVotesByElectionId)
-                .toList();
-
-        getVotesByElectionIdResponse response = getVotesByElectionIdResponse.newBuilder().addAllVotes(votes).build();
-        responseStreamObserver.onNext(response);
-        responseStreamObserver.onCompleted();
-    }
-
-    @Override
-    public void votesCountByElectionId(VotesByElectionIdRequest request , StreamObserver<VoteCountResponse> responseStreamObserver){
+    public void votesCountByElectionId(VotesByElectionIdRequest request, StreamObserver<VoteCountResponse> responseStreamObserver) {
+        AuthContext.requireAdmin();
         var electionId = UUID.fromString(request.getElectionId());
         long count = votesDetail.countByElectionId(electionId);
         VoteCountResponse response = VoteCountResponse.newBuilder()
@@ -105,14 +64,15 @@ public class VotingController extends VotingSystemServiceGrpc.VotingSystemServic
     }
 
     @Override
-    public void votesCountByCandidateId(VotesByCandidateIdRequest request , StreamObserver<VoteCountResponse> responseStreamObserver){
+    public void votesCountByCandidateId(VotesByCandidateIdRequest request, StreamObserver<VoteCountResponse> responseStreamObserver) {
+        AuthContext.requireAdmin();
         var candidateId = UUID.fromString(request.getCandidateId());
-        long count = votesDetail.countByCandidateId(candidateId);
+        var electionId = UUID.fromString(request.getElectionId());
+        long count = votesDetail.countByCandidateId(electionId, candidateId);
         VoteCountResponse response = VoteCountResponse.newBuilder()
                 .setCount(count)
                 .build();
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }
-
 }
